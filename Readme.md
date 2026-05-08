@@ -1,7 +1,11 @@
 # 手动实现EKF实现姿态解算
-1.在连接后IMU的串口后，给与权限，sudo chmod 777 /dev/ttyUSB0。
+
+1.在连接后IMU的串口后，给与权限，sudo chmod 777 /dev/ttyUSB0
+
 2.在~/products-master/examples/ROS2/hipnuc_ws下运行colcon build构建程序
+
 3.运行ros2 launch hipnuc_imu imu_spec_msg.launch.py 后会获取原始数据，包括6轴的角速度，加速度（/IMU_data），IMU内置的动态卡尔曼滤波解算算法得到的欧拉角（/euler_data），磁力计信息（/magnetic_data）
+
 4.目标还未完成，需要完善，目前解算偏差较大
 
 
