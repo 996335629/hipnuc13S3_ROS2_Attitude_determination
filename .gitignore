@@ -1,0 +1,44 @@
+# --- ROS 2 colcon 工作空间（构建、安装、日志目录）---
+build/
+install/
+log/
+.colcon*
+.ros/
+
+# --- CMake / 编译缓存 ---
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+compile_commands.json
+
+# --- 编辑器 / IDE 配置 ---
+.vscode/
+.idea/
+*.code-workspace
+
+# --- Python 缓存 ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# --- 杂项（系统文件、临时文件等）---
+*.swp
+*.swo
+.DS_Store
+
+# --- ROS2 特定的数据/日志文件 ---
+*.db3
+launch_params_*
+frames_*.gv
+frames_*.pdf
+
+# --- 可选：大型/二进制文件（按需开启）---
+# *.bag
+# *.onnx
+# *.pt
+# *.bin
+# *.stl
+# *.fbx
