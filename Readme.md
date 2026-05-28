@@ -18,7 +18,7 @@ imu_6dof_config.yaml 设置算法的各项参数
 打开第三个集成终端（命令行窗口），install source/setup.bash加载加载当前工作空间的环境变量和路径，
 运行ros2 run hipnuc_imu attitude_estimator_6dof --ros-args --params-file ./src/hipnuc_imu/config/imu_6dof_config.yaml可以获得通过Mahony或Madgwick滤波得到的欧拉角（通过设置config/imu_6dof_config.yaml）
 
-#其他备注：
+# 其他备注：
 假如要移植的话请先参考其他案例下的串口获取数据示例(https://github.com/hipnuc/products.git)
 
 6轴无法保证yaw角的稳定，一定会漂。频率越高更新越快飘得越厉害。
