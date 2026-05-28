@@ -1,128 +1,81 @@
 #include <unistd.h>
 #include <memory>
 #include <iostream>
-#include <iomanip>
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/imu.hpp"
-#include "sensor_msgs/msg/magnetic_field.hpp"
-#include "geometry_msgs/msg/vector3_stamped.hpp"
+#include "std_msgs/msg/string.hpp"
+#include <sensor_msgs/msg/imu.hpp>
+#include <iomanip>
 
 rclcpp::Node::SharedPtr nh = nullptr;
 using namespace std;
 
-// IMU 数据回调
-void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
+void topic_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
-    static int count = 0;
-    if (++count % 100 != 0)
-        return;
+	static int i = 0;
+	if (i++ % 100)
+		return ;
 
-    cout << "\n========== IMU Data ==========" << endl;
-    cout << "header.stamp: sec=" << msg->header.stamp.sec 
-         << " nsec=" << msg->header.stamp.nanosec << endl;
-    //cout << "frame_id: " << msg->header.frame_id << endl;
+	cout << "header:" << "\n";
+	cout << "	" << "stamp:"<< "\n";
+	cout << "	  " << "secs:" << msg->header.stamp.sec<< "\n";
+	cout << "	  " << "nanosecs:" << msg->header.stamp.nanosec << "\n";
+	cout << "	" << "frame_id:" << msg->header.frame_id << "\n" ;
 
-    cout << "orientation (w,x,y,z): " 
-         << fixed << setprecision(6)
-         << msg->orientation.w << ", "
-         << msg->orientation.x << ", "
-         << msg->orientation.y << ", "
-         << msg->orientation.z << endl;
-    double w=msg->orientation.w;
-    double x=msg->orientation.x;
-    double y=msg->orientation.y;
-    double z=msg->orientation.z;
-    double pitch = asin(std::clamp(2.0 * (w * x + y * z), -1.0, 1.0))*57.29577951308;
-    double roll = -atan2(2.0 * (x * z - w * y), w * w - x * x - y * y + z * z)*57.29577951308;
-    double yaw = -atan2(2.0 * (x * y - w * z), w * w - x * x + y * y - z * z)*57.29577951308;
+	cout << "orientation:" << "\n";
+	cout << "	" << "x: " << fixed << setprecision(18) << msg->orientation.x << "\n";
+	cout << "	" << "y: " << fixed << setprecision(18) << msg->orientation.y << "\n";
+	cout << "	" << "z: " << fixed << setprecision(18) << msg->orientation.z << "\n";
+	cout << "	" << "w: " << fixed << setprecision(18) << msg->orientation.w << "\n";
+	cout  << "orientation_covariance: [ " << fixed << setprecision(1) << msg->orientation_covariance[0];
+	cout  << ", " << msg->orientation_covariance[1];
+	cout  << ", " << msg->orientation_covariance[2];
+	cout  << ", " << msg->orientation_covariance[3];
+	cout  << ", " << msg->orientation_covariance[4];
+	cout  << ", " << msg->orientation_covariance[5];
+	cout  << ", " << msg->orientation_covariance[6];
+	cout  << ", " << msg->orientation_covariance[7];
+	cout  << ", " << msg->orientation_covariance[8] << "]" << "\n";
 
-    cout << "quat_to_roll, pitch, yaw (°): " 
-         << fixed << setprecision(6)
-         << roll << ", "
-         << pitch << ", "
-         << yaw << endl;
-    // cout << "angular_velocity (rad/s): "
-    //      << msg->angular_velocity.x << ", "
-    //      << msg->angular_velocity.y << ", "
-    //      << msg->angular_velocity.z << endl;
+	cout  << "angular_velocity: " << "\n";
+	cout  << "	" << "x: " << fixed << setprecision(18) << msg->angular_velocity.x << "\n";
+	cout  << "	" << "y: " << fixed << setprecision(18) << msg->angular_velocity.y << "\n";
+	cout  << "	" << "z: " << fixed << setprecision(18) << msg->angular_velocity.z << "\n";
+	cout  << "angular_velocity_covariance: [ " << fixed << setprecision(1) << msg->angular_velocity_covariance[0];
+	cout  << ", " << msg->angular_velocity_covariance[1];
+	cout  << ", " << msg->angular_velocity_covariance[2];
+	cout  << ", " << msg->angular_velocity_covariance[3];
+	cout  << ", " << msg->angular_velocity_covariance[4];
+	cout  << ", " << msg->angular_velocity_covariance[5];
+	cout  << ", " << msg->angular_velocity_covariance[6];
+	cout  << ", " << msg->angular_velocity_covariance[7];
+	cout  << ", " << msg->angular_velocity_covariance[8] << "]" << "\n";
 
-    // cout << "linear_acceleration (m/s^2): "
-    //      << msg->linear_acceleration.x << ", "
-    //      << msg->linear_acceleration.y << ", "
-    //      << msg->linear_acceleration.z << endl;
-    cout << "================================" << endl;
+	cout  << "linear_acceleration:" << "\n";
+	cout  << "	" << "x: " << fixed << setprecision(18) << msg->linear_acceleration.x << "\n" ;
+	cout  << "	" << "y: " << fixed << setprecision(18) << msg->linear_acceleration.y << "\n" ;
+	cout  << "	" << "z: " << fixed << setprecision(18) << msg->linear_acceleration.z << "\n" ;
+	cout  << "linear_acceleration_covariance: [ " << fixed << setprecision(1) << msg->linear_acceleration_covariance[0];
+	cout  << ", " << msg->linear_acceleration_covariance[1] ;
+	cout  << ", " << msg->linear_acceleration_covariance[2] ;
+	cout  << ", " << msg->linear_acceleration_covariance[3] ;
+	cout  << ", " << msg->linear_acceleration_covariance[4] ;
+	cout  << ", " << msg->linear_acceleration_covariance[5] ;
+	cout  << ", " << msg->linear_acceleration_covariance[6] ;
+	cout  << ", " << msg->linear_acceleration_covariance[7] ;
+	cout  << ", " << msg->linear_acceleration_covariance[8] << "]" << "\n" << "---" << endl;
 }
 
-// 欧拉角回调 (Vector3Stamped)
-void euler_callback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg)
+
+int main(int argc,const char* argv[])
 {
-    // static int count = 0;
-    // if (++count % 100 != 0)
-    //     return;
+	rclcpp::init(argc, argv);
+	nh = std::make_shared<rclcpp::Node>("imu_sub");
+	rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub ;
+	rclcpp::SensorDataQoS qos;
+	imu_sub = nh->create_subscription<sensor_msgs::msg::Imu>("IMU_data", qos, topic_callback);
+	
+	rclcpp::spin(nh);
+	rclcpp::shutdown();
 
-    // cout << "\n========== Euler Data ==========" << endl;
-    // cout << "stamp: sec=" << msg->header.stamp.sec 
-    //      << " nsec=" << msg->header.stamp.nanosec << endl;
-    // cout << "frame_id: " << msg->header.frame_id << endl;
-    // cout << "roll, pitch, yaw (°): "
-    //      << fixed << setprecision(6)
-    //      << msg->vector.x*57.29577951308 << ", "
-    //      << msg->vector.y*57.29577951308 << ", "
-    //      << msg->vector.z*57.29577951308 << endl;
-    // cout << "================================" << endl;
-}
-
-// 磁力计回调 (MagneticField)
-void magnetic_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
-{
-    static int count = 0;
-    if (++count % 100 != 0)
-        return;
-
-    cout << "\n========== Magnetic Field ==========" << endl;
-    cout << "stamp: sec=" << msg->header.stamp.sec 
-         << " nsec=" << msg->header.stamp.nanosec << endl;
-    //cout << "frame_id: " << msg->header.frame_id << endl;
-    cout << "magnetic_field (tesla): "
-         << fixed << setprecision(6)
-         << msg->magnetic_field.x*1e6 << ", "
-         << msg->magnetic_field.y*1e6 << ", "
-         << msg->magnetic_field.z*1e6 << ", "
-         << 1e6*sqrt(msg->magnetic_field.x*msg->magnetic_field.x+msg->magnetic_field.y*msg->magnetic_field.y+msg->magnetic_field.z*msg->magnetic_field.z) << endl;;
-    // cout << "====================================" << endl;
-}
-
-// void quat_to_euler(double w, double x, double y, double z)
-// {
-//     pitch = asin(std::clamp(2.0 * (w * x + y * z), -1.0, 1.0));
-//     roll = -atan2(2.0 * (x * z - w * y), w * w - x * x - y * y + z * z);
-//     yaw = -atan2(2.0 * (x * y - w * z), w * w - x * x + y * y - z * z);
-// }
-
-int main(int argc, const char* argv[])
-{
-    rclcpp::init(argc, argv);
-    nh = std::make_shared<rclcpp::Node>("imu_sub");
-
-    // 使用 SensorDataQoS 保证数据实时性
-    rclcpp::SensorDataQoS qos;
-
-    // 订阅 IMU 数据
-    auto imu_sub = nh->create_subscription<sensor_msgs::msg::Imu>(
-        "/IMU_data", qos, imu_callback);
-    
-    // 订阅欧拉角数据（如果 talker 中 euler_switch 为 true）
-    auto euler_sub = nh->create_subscription<geometry_msgs::msg::Vector3Stamped>(
-        "/euler_data", qos, euler_callback);
-    
-    // 订阅磁力计数据（如果 talker 中 magnetic_switch 为 true）
-    auto magnetic_sub = nh->create_subscription<sensor_msgs::msg::MagneticField>(
-        "/magnetic_data", qos, magnetic_callback);
-
-    RCLCPP_INFO(nh->get_logger(), "Subscriber started. Waiting for data on /IMU_data, /euler_data, /magnetic_data...");
-
-    rclcpp::spin(nh);
-    rclcpp::shutdown();
-
-    return 0;
+	return 0;
 }
