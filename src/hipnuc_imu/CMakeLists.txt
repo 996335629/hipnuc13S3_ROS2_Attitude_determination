@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(hipnuc_imu)
 
 # Default to C99
@@ -25,6 +25,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -51,8 +52,18 @@ set_target_properties(talker PROPERTIES
 add_executable(listener src/sub_spec.cpp)
 ament_target_dependencies(listener rclcpp std_msgs sensor_msgs rclcpp_components)
 
-add_executable(attitude_estimator src/attitude_estimator.cpp)
-ament_target_dependencies(attitude_estimator
+add_executable(attitude_estimator_6dof src/attitude_estimator_6dof.cpp)
+ament_target_dependencies(attitude_estimator_6dof
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+add_executable(attitude_estimator_9dof src/attitude_estimator_9dof.cpp)
+ament_target_dependencies(attitude_estimator_9dof
   rclcpp
   sensor_msgs
   geometry_msgs
@@ -62,7 +73,30 @@ ament_target_dependencies(attitude_estimator
 )
 
 
-install(TARGETS talker listener attitude_estimator DESTINATION lib/${PROJECT_NAME})
+
+add_executable(EKF_6dof src/EKF_6dof.cpp)
+ament_target_dependencies(EKF_6dof
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+add_executable(EKF_9dof src/EKF_9dof.cpp)
+ament_target_dependencies(EKF_9dof
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+
+
+install(TARGETS talker listener EKF_9dof attitude_estimator_6dof attitude_estimator_9dof EKF_6dof DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY
   config/

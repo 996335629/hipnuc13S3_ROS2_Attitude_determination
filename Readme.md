@@ -1,13 +1,29 @@
-# 手动实现EKF实现姿态解算
+# 手动实现IMU姿态解算
 
 1.在连接后IMU的串口后，给与权限，sudo chmod 777 /dev/ttyUSB0
+（可以永久设置权限，指令为 sudo usermod -aG dialout username
+其中username为用户名，把此用户名加入dialout用户组（dialout是一个group，它主要负责对于串口的权限）
 
 2.在~/products-master/examples/ROS2/hipnuc_ws下运行colcon build构建程序
 
-3.运行ros2 launch hipnuc_imu imu_spec_msg.launch.py 后会获取原始数据，包括6轴的角速度，加速度（/IMU_data），IMU内置的动态卡尔曼滤波解算算法得到的欧拉角（/euler_data），磁力计信息（/magnetic_data）
+3.可以在config下的
+hipnuc_config.yaml 设置发布的原始数据
+imu_6dof_config.yaml 设置算法的各项参数
 
-4.目标还未完成，需要完善，目前解算偏差较大
+4.打开第一个集成终端（命令行窗口），install source/setup.bash加载加载当前工作空间的环境变量和路径，
+运行ros2 launch hipnuc_imu imu_spec_msg.launch.py 后会通过串口处理后获取原始数据，发布话题（数据），包括角速度，加速度,四元数（/IMU_data），磁力计（/magnetic_data）IMU内置的动态卡尔曼滤波解算算法得到的欧拉角（/euler_data）。
 
+打开第二个集成终端（命令行窗口），install source/setup.bash加载加载当前工作空间的环境变量和路径，，运行ros2 run hipnuc_imu EKF_6dof --ros-args --params-file ./src/hipnuc_imu/config/imu_6dof_config.yaml可以获得通过扩展卡尔曼滤波得到的欧拉角
+
+打开第三个集成终端（命令行窗口），install source/setup.bash加载加载当前工作空间的环境变量和路径，
+运行ros2 run hipnuc_imu attitude_estimator_6dof --ros-args --params-file ./src/hipnuc_imu/config/imu_6dof_config.yaml可以获得通过Mahony或Madgwick滤波得到的欧拉角（通过设置config/imu_6dof_config.yaml）
+
+#其他备注：
+假如要移植的话请先参考其他案例下的串口获取数据示例(https://github.com/hipnuc/products.git)
+
+6轴无法保证yaw角的稳定，一定会漂。频率越高更新越快飘得越厉害。
+
+6轴算是完成了，EKF效果还可以，但是9轴的yaw角一直搞不定，初始化都无法收敛到正确角度，甚至是官方的给的数据example_data.csv也对不上，建议使用官方输出的四元数,欧拉角吧。
 
 # 目标
 IMU9轴姿态解算
@@ -28,6 +44,68 @@ IMU9轴姿态解算
 分辨率		水平放置			0.01°
 
 算法：mahony，madgwick，EKF
+
+# IMU的参数
+/*======================================================================
+ *  EKF 9轴 AHRS (含磁力计)
+ *
+ *  导航系:  东北天 (ENU)      X=East, Y=North, Z=Up
+ *  机体系:  右前上 (RFU)      X=Right, Y=Forward, Z=Up
+ *  旋转:    ZXY 内旋          yaw(绕Z) → pitch(绕X) → roll(绕Y)
+ *  四元数:  q_0=w, q_1=x, q_2=y, q_3=z (Hamilton)
+ *  欧拉角:  roll=绕Y, pitch=绕X, yaw=绕Z
+ *
+ *  预测量: 陀螺仪驱动四元数运动学
+ *  观测量: 加速度计(重力方向) + 磁力计(地磁方向)
+ *
+ *  欧拉角转四元数(ZXY): q = qz(yaw) ⊗ qx(pitch) ⊗ qy(roll)
+    q0 = cp * cr * cy - sp * sr * sy;
+    q1 = cr * cy * sp - cp * sr * sy;
+    q2 = cp * cy * sr + cr * sp * sy;
+    q3 = cp * cr * sy + sp * sr * cy;
+ *
+ *  四元数转欧拉角(ZXY):
+    pitch = arcsin(2*(w*x + y*z))
+    roll  = -atan2(2*(x*z - w*y), w^2 - x^2 - y^2 + z^2)
+    yaw   = -atan2(2*(x*y - w*z), w^2 - x^2 + y^2 - z^2)
+ *  机体到导航余弦矩阵:
+ * C_b2n = [ q0^2 + q1^2 - q2^2 - q3^2,   2*(q1*q2 - q0*q3),       2*(q1*q3 + q0*q2);
+    2*(q1*q2 + q0*q3),           q0^2 - q1^2 + q2^2 - q3^2, 2*(q2*q3 - q0*q1);
+    2*(q1*q3 - q0*q2),           2*(q2*q3 + q0*q1),       q0^2 - q1^2 - q2^2 + q3^2 ];
+    导航到机体旋转矩阵:%与上面转置后是一样的，可以带入数值计算看看
+    C_n2B =
+[cos(roll)*cos(yaw) - sin(pitch)*sin(roll)*sin(yaw),  cos(roll)*sin(yaw) + cos(yaw)*sin(pitch)*sin(roll), -cos(pitch)*sin(roll)]
+[-cos(pitch)*sin(yaw),                                             cos(pitch)*cos(yaw),                                              sin(pitch)]
+[cos(yaw)*sin(roll) + cos(roll)*sin(pitch)*sin(yaw), sin(roll)*sin(yaw) - cos(roll)*cos(yaw)*sin(pitch) ,  cos(pitch)*cos(roll)]
+    *======================================================================*/
+
+# MATLAB原理推导代码
+syms pitch roll yaw H V real
+%%定义基本旋转矩阵（坐标变换形式）
+Rx = @(a) [1 0 0; 0 cos(a) sin(a); 0 -sin(a) cos(a)];
+Ry = @(a) [cos(a) 0 -sin(a); 0 1 0; sin(a) 0 cos(a)];
+Rz = @(a) [cos(a) sin(a) 0; -sin(a) cos(a) 0; 0 0 1];
+
+%%从导航系到机体系
+C_n2B = Ry(roll) * Rx(pitch) * Rz(yaw);
+%C_n2B的结果与文档的四元数方向余弦矩阵是一样的
+
+%%地磁矢量（导航系）
+m_n = [0; H; V];
+% 机体系磁场
+m_b = simplify(C_n2B * m_n);
+% 倾斜补偿（从机体系到水平系）
+R_horiz = Rx(-1*pitch) * Ry(-1*roll);%转回水平，获得X和Y的夹角
+
+%syms mbx mby mbz
+%m_b=[mbx mby mbz].';%%IMU输出的值就是m_b 测试用 
+
+m_h = simplify(R_horiz * m_b)%
+%%m_h=[H*sin(yaw) H*cos(yaw) V].';
+
+%%roll=-atan2(ax, az);
+%%pitch = atan2(ay, sqrt(ax * ax + az * az));
+%%yaw=arctan(mhx,mhy);
 
 
 

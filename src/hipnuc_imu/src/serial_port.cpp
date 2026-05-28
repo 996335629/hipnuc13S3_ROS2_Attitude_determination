@@ -1,3 +1,4 @@
+// serial_port.cpp
 #include <iostream>
 #include <memory>
 #include <string>
@@ -52,8 +53,8 @@ namespace hipnuc_driver
 				this->declare_parameter<std::string>("euler_topic", "/euler_data");
 				this->declare_parameter<std::string>("magnetic_topic", "/magnetic_data");
 				this->declare_parameter<bool>("imu_switch", true);
-				this->declare_parameter<bool>("euler_switch", false);
-				this->declare_parameter<bool>("magnetic_switch", false);
+				this->declare_parameter<bool>("euler_switch", true);
+				this->declare_parameter<bool>("magnetic_switch", true);
 
 				this->get_parameter("serial_port", serial_port);
 				this->get_parameter("baud_rate", baud_rate);
